@@ -9,6 +9,12 @@ use RuntimeException;
  */
 class Manifest
 {
+    protected bool $dev;
+
+    protected ?string $manifest_path;
+
+    protected ?string $base_path;
+
     /**
      * @var array<string,Chunk> map where chunk names => `Chunk` instances.
      */
@@ -28,14 +34,14 @@ class Manifest
          *
          * In development mode, Vite will dynamically inject CSS and JS tags.
          */
-        private bool $dev,
+        bool $dev,
 
         /**
          * Absolute path to the `manifest.json` file.
          *
          * This is only used and required in production mode.
          */
-        private string $manifest_path,
+        string $manifest_path,
 
         /**
          * Public base path from which Vite's published assets are served.
@@ -45,15 +51,18 @@ class Manifest
          * Should match the `base` option in your Vite configuration, but could also point
          * to a CDN or other asset server, if you are serving assets from a different domain.
          */
-        private string $base_path,
+        string $base_path
     ) {
+        $this->dev = $dev;
+        $this->manifest_path = $manifest_path;
+        $this->base_path = $base_path;
+
         if ($this->dev) {
             // In development mode, we don't need the `manifest.json` file:
 
             $this->chunks = [];
         } else {
             // In production, read Vite's `manifest.json` file:
-
             if (!is_readable($this->manifest_path)) {
                 throw new RuntimeException(
                     file_exists($this->manifest_path)
@@ -156,16 +165,16 @@ class Manifest
                 $js[] = "<script type=\"module\" src=\"{$this->base_path}{$entry}\"></script>";
             }
 
-            return new Tags(js: implode("\n", $js));
+            return new Tags(implode("\n", $js));
         } else {
             // In production mode, we generate CSS/JS and preload tags for all entries and their dependencies:
 
             $chunks = $this->findImportedChunks($entries);
 
             return new Tags(
-                preload: $this->createPreloadTags($chunks),
-                css: $this->createStyleTags($chunks),
-                js: $this->createScriptTags($chunks)
+                $this->createPreloadTags($chunks),
+                $this->createStyleTags($chunks),
+                $this->createScriptTags($chunks)
             );
         }
     }
